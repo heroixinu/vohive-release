@@ -1,9 +1,13 @@
 #!/bin/sh
 set -eu
 
-REPO="${VOHIVE_RELEASE_REPO:-iniwex5/vohive-release}"
-CHANNEL="${VOHIVE_RELEASE_CHANNEL:-stable}"
-VERSION=""
+# VoHive 一键安装脚本
+# 从本仓库下载预编译二进制并注册系统服务
+# 用法: wget -O - https://raw.githubusercontent.com/heroixinu/vohive-release/master/install.sh | sh
+
+REPO="heroixinu/vohive-release"
+VERSION="${VOHIVE_VERSION:-v1.5.5}"
+ARCH=""
 NO_SYSTEMD=0
 DRY_RUN=0
 FORCE=0
@@ -31,11 +35,10 @@ err() { printf '[vohive-install] 错误: %s\n' "$*" >&2; }
 usage() {
   cat <<USAGE
 用法: install.sh [选项]
-  --version <vX.Y.Z|latest|stable>
-  --channel <stable|latest>
-  --no-systemd
-  --dry-run
-  --force
+  --version <vX.Y.Z>    指定版本（默认 v1.5.5）
+  --no-systemd          跳过服务注册
+  --dry-run             仅打印不执行
+  --force               强制覆盖配置文件
 USAGE
 }
 
@@ -90,37 +93,6 @@ download_to() {
   fi
 }
 
-fetch_text() {
-  url="$1"
-  tmp_file="${TMP_DIR}/fetch.txt"
-  download_to "$url" "$tmp_file"
-  cat "$tmp_file"
-}
-
-resolve_version() {
-  requested="$1"
-
-  if [ -z "${requested}" ]; then
-    requested="${CHANNEL}"
-  fi
-
-  case "${requested}" in
-    latest|stable)
-      api_url="https://api.github.com/repos/${REPO}/releases/latest"
-      latest_json="$(fetch_text "${api_url}")"
-      resolved="$(printf '%s\n' "${latest_json}" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
-      if [ -z "${resolved}" ]; then
-        err "无法从 GitHub API 获取最新 Release 版本号。"
-        exit 1
-      fi
-      printf '%s\n' "${resolved}"
-      ;;
-    *)
-      printf '%s\n' "${requested}"
-      ;;
-  esac
-}
-
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -131,15 +103,6 @@ parse_args() {
           exit 1
         fi
         VERSION="$2"
-        shift 2
-        ;;
-      --channel)
-        if [ "$#" -lt 2 ]; then
-          err "--channel 缺少参数"
-          usage
-          exit 1
-        fi
-        CHANNEL="$2"
         shift 2
         ;;
       --no-systemd)
@@ -201,7 +164,7 @@ install_default_config() {
     return 0
   fi
   if [ ! -f "${CONFIG_DIR}/config.yaml" ] || [ "${FORCE}" = "1" ]; then
-    run_root sh -c "cat >\"${CONFIG_DIR}/config.yaml\"" <<'CFG'
+    run_root sh -c "cat >'${CONFIG_DIR}/config.yaml'" <<'CFG'
 server:
   port: ":7575"
 
@@ -209,6 +172,19 @@ web:
   username: "admin"
   password: "admin"
 CFG
+  fi
+}
+
+install_mcc_mnc_table() {
+  if [ "${DRY_RUN}" = "1" ]; then
+    return 0
+  fi
+  mcc_mnc_url="https://raw.githubusercontent.com/${REPO}/master/binaries/mcc-mnc-table.json"
+  mcc_mnc_tmp="${TMP_DIR}/mcc-mnc-table.json"
+  log "正在下载运营商表: ${mcc_mnc_url}"
+  download_to "${mcc_mnc_url}" "${mcc_mnc_tmp}"
+  if [ -f "${mcc_mnc_tmp}" ]; then
+    run_root install -m 0644 "${mcc_mnc_tmp}" "${DATA_DIR}/mcc-mnc-table.json"
   fi
 }
 
@@ -320,19 +296,18 @@ main() {
   trap 'rm -rf "${TMP_DIR}"' EXIT INT TERM
 
   arch="$(detect_arch)"
-  resolved_version="$(resolve_version "${VERSION}")"
-  asset="vohive_${resolved_version}_linux_${arch}"
-  base="https://github.com/${REPO}/releases/download/${resolved_version}"
+  asset="vohive_${VERSION}_linux_${arch}"
+  base="https://raw.githubusercontent.com/${REPO}/master/binaries"
   downloaded="${TMP_DIR}/${asset}"
-  extracted="${downloaded}"
 
-  log "已解析版本: ${resolved_version}"
+  log "版本: ${VERSION}"
+  log "架构: ${arch}"
   log "正在下载二进制: ${base}/${asset}"
 
   download_to "${base}/${asset}" "${downloaded}"
   chmod +x "${downloaded}"
 
-  if [ ! -f "${extracted}" ]; then
+  if [ ! -f "${downloaded}" ]; then
     err "下载的二进制文件不存在"
     exit 1
   fi
@@ -355,7 +330,10 @@ main() {
     fi
   }
 
-  run_root install -m 0755 "${extracted}" "${BIN_PATH}"
+  run_root install -m 0755 "${downloaded}" "${BIN_PATH}"
+
+  # 下载并部署运营商表
+  install_mcc_mnc_table
 
   ACTIVE_PLATFORM="$(detect_platform)"
   service_registered=0
@@ -391,7 +369,7 @@ main() {
   fi
 
   rollback_needed=0
-  log "安装完成: ${BIN_PATH} (${resolved_version})"
+  log "安装完成: ${BIN_PATH} (${VERSION})"
 
   if [ "${service_registered}" = "1" ]; then
     case "${ACTIVE_PLATFORM}" in
