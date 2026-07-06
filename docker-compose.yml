@@ -1,0 +1,22 @@
+# VoHive Docker Compose 配置
+# 镜像地址: ghcr.io/heroixinu/vohive
+# 用法: docker compose up -d
+
+services:
+  vohive:
+    image: ghcr.io/heroixinu/vohive:v1.5.5
+    container_name: vohive
+    restart: unless-stopped
+    ports:
+      - "7575:7575"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_PATH=/app/config/config.yaml
+    privileged: true
+    devices:
+      - /dev/:/dev/
+    network_mode: host
