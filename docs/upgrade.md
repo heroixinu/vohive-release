@@ -3,11 +3,11 @@
 指定版本升级：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/heroixinu/vohive-release/master/install.sh | bash -s -- --version v1.6.6
+curl -fsSL https://raw.githubusercontent.com/heroixinu/vohive-release/master/install.sh | bash -s -- --version v1.6.7
 ```
 
 ```sh
-wget -O - https://raw.githubusercontent.com/heroixinu/vohive-release/master/install.sh | sh -s -- --version v1.6.6
+wget -O - https://raw.githubusercontent.com/heroixinu/vohive-release/master/install.sh | sh -s -- --version v1.6.7
 ```
 
 默认重复执行安装脚本即为升级语义，脚本会备份旧二进制到 `/opt/vohive/bin/vohive.bak`。
