@@ -1,0 +1,24 @@
+name: Publish Release Assets
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify release artifacts
+        run: test -f "binaries/vohive_${GITHUB_REF_NAME}_linux_amd64"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: binaries/vohive_${{ github.ref_name }}_linux_*
