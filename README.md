@@ -58,11 +58,11 @@ docker compose up -d
 
 | 镜像 | 说明 |
 |------|------|
-| `ghcr.io/heroixinu/vohive:v1.6.2` | 指定版本 |
+| `ghcr.io/heroixinu/vohive:v1.6.3` | 指定版本 |
 | `ghcr.io/heroixinu/vohive:latest` | 最新版本 |
 
 ```bash
-docker pull ghcr.io/heroixinu/vohive:v1.6.2
+docker pull ghcr.io/heroixinu/vohive:v1.6.3
 ```
 
 ## 卸载
