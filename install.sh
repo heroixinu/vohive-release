@@ -6,7 +6,7 @@ set -eu
 # 用法: wget -O - https://raw.githubusercontent.com/heroixinu/vohive-release/master/install.sh | sh
 
 REPO="heroixinu/vohive-release"
-VERSION="${VOHIVE_VERSION:-v1.6.1}"
+VERSION="${VOHIVE_VERSION:-v1.6.2}"
 ARCH=""
 NO_SYSTEMD=0
 DRY_RUN=0
@@ -35,7 +35,7 @@ err() { printf '[vohive-install] 错误: %s\n' "$*" >&2; }
 usage() {
   cat <<USAGE
 用法: install.sh [选项]
-  --version <vX.Y.Z>    指定版本（默认 v1.6.1）
+  --version <vX.Y.Z>    指定版本（默认 v1.6.2）
   --no-systemd          跳过服务注册
   --dry-run             仅打印不执行
   --force               强制覆盖配置文件
